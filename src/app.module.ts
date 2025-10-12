@@ -11,6 +11,7 @@ import { SchemasModule } from './schemas/schemas.module';
 import { UsersModule } from './users/users.module';
 import { PreloginModule } from './login/preLogin/prelogin.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './common/auth/auth.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     HealthModule, 
     UsersModule,
     PreloginModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,12 +7,15 @@ import { RolesEnum } from 'src/common/decators/roles/roles.enum';
 import { Roles } from 'src/common/decators/roles/roles.decator';
 import { RolesGuard } from 'src/common/decators/roles/roles.guard';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-
-
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    @InjectModel(User.name)public model:Model<User>,
+) {}
 
   @Post('register')
   async register(@Body() body: { username: string; password: string; role?: string }) {
@@ -21,7 +24,7 @@ export class UsersController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RolesEnum.ADMIN)
+  @Roles(RolesEnum.ADMIN) // zamanlama kısmına bak role güvenliğinde geçicide olsa veriler anlık geri geldim vs derken 1 2 sn user verilerini gördüm bunu bi test et . 
   async findAll() {
     return this.usersService.findAll();
   }
@@ -53,5 +56,4 @@ export class UsersController {
     return this.usersService.resetUsers();
   }
 }
-
 
