@@ -29,18 +29,19 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Roles(RolesEnum.ADMIN)
   @Get(':userId')
   async findOne(@Param('userId') userId: string) {
     const numericId = Number(userId);
     if (isNaN(numericId)) throw new NotFoundException('Invalid user id');
     return this.usersService.findByUserId(numericId);
   }
-
+  @Roles(RolesEnum.ADMIN)
   @Get('by-id/:id')
   async findById(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
-
+  @Roles(RolesEnum.ADMIN)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() body: Partial<{ username: string; password: string; role: string }>) {
     return this.usersService.updateUser(id, body);

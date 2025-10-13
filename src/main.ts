@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 //swaggerr hatamız buymuş galiba
 //Şimdi Swagger kurulumunu kontrol ettim.
 // Sorun büyük ihtimalle ESM ortamında reflect-metadata’ın yüklenmemesinden kaynaklanıyor.
@@ -12,6 +13,13 @@ import cookieParser from 'cookie-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
+  // Global validation pipe
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+  
   app.use(cookieParser());
 
 
@@ -20,6 +28,17 @@ const config = new DocumentBuilder()
     .setDescription('API açıklaması')
     .setVersion('1.0')
     .addTag('users') // Opsiyonel: tag ekleyebilirsin
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app,config);

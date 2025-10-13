@@ -4,9 +4,13 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { User, UserSchema } from 'src/schemas/user.schema';
-import { UsersModule } from 'src/users/users.module';  // ✅ Burada doğru yol çok önemli!
+import { UsersModule } from 'src/users/users.module'; 
 import { LocalStrategy } from './jwt/local.strategy';
 import { CommonModule } from '../common.module';
+import { RegisterDto} from "./dto/register.dto";
+import {LoginDto}from "./dto/login.dto"
+import { RefreshDto} from "./dto/refresh.dto";
+import { AuthController } from './auth.controller';
 
 @Module({
   imports: [
@@ -19,6 +23,7 @@ import { CommonModule } from '../common.module';
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
+  controllers:[AuthController],
   providers: [AuthService, LocalStrategy],
   exports: [AuthService],
 })

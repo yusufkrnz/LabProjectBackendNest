@@ -1,4 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule ,MiddlewareConsumer,Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import{RateLimitMiddleware}from'./common/auth/middlewares/rate-limit.middleware'
+import { AuthGuard } from '@nestjs/passport';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { LoginModule } from './login/login.module';
@@ -34,4 +36,14 @@ import { AuthModule } from './common/auth/auth.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule{
+
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RateLimitMiddleware)
+      .forRoutes('*');
+  }
+
+
+
+}

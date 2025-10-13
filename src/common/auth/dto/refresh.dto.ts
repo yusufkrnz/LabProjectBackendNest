@@ -1,14 +1,11 @@
-/*
+
 import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 
 export class RefreshDto {
 
-  @ApiPropertyOptional({ 
-
-     //  İncelenecek bu kısım şimdilik dursun 
-
+  @ApiPropertyOptional({
     description: 'Refresh token (opsiyonel - cookie kullanılıyorsa boş bırakın)', 
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' 
   })
@@ -17,4 +14,4 @@ export class RefreshDto {
   @IsNotEmpty({ message: 'Refresh token cannot be empty' })
   refreshToken?: string;
 }
-  */
+  

@@ -3,14 +3,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schemas/user.schema';
 import * as bcrypt from'bcrypt';
-import { JwtService } from '@nestjs/jwt';
 
 
 @Injectable()
 export class PreloginService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>,
-   private readonly jwtService:JwtService
-) {}
+  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
   async findAllUsers(): Promise<User[]> {
     return this.userModel.find().exec();
@@ -39,8 +36,8 @@ export class PreloginService {
     return true;
   }
 
-async login(username: string, password: string) {
-  // Önce veritabanından kullanıcıyı bul
+async validateCredentials(username: string, password: string) {
+  // Kullanıcıyı bul
   const user = await this.userModel.findOne({ username }).exec();
   if (!user) {
     throw new UnauthorizedException('User not found');
@@ -48,35 +45,14 @@ async login(username: string, password: string) {
 
   // Şifre kontrolü
   const isMatch = await bcrypt.compare(password, user.passwordHash);
-  if (!isMatch) throw new UnauthorizedException('Invalid password');
+  if (!isMatch) {
+    throw new UnauthorizedException('Invalid password');
+  }
 
-  // JWT payload oluştur
-  const payload = { 
-    sub: user._id, 
-    username: user.username, 
-    role: user.role,
-    userId: user.userId
-  };
-  
-  // Access Token (15 dakika)
-  const accessToken = this.jwtService.sign(payload, { 
-    expiresIn: '15m' 
-  });
-  
-  // Refresh Token (7 gün)
-  const refreshToken = this.jwtService.sign(
-    { sub: user._id }, 
-    { expiresIn: '7d' }
-  );
-
-  // Refresh token'ı veritabanına kaydet
-  user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
-  await user.save();
-  
+  // Sadece doğrulama sonucunu döndür (token üretmez)
   return { 
     success: true,
-    accessToken,
-    refreshToken,
+    message: 'Credentials validated successfully',
     user: {
       id: user._id,
       userId: user.userId,

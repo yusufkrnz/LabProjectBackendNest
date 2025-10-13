@@ -1,71 +1,59 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schemas/user.schema';
-import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class PostloginService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<User>,
-    private readonly jwtService: JwtService
+    @InjectModel(User.name) private userModel: Model<User>
   ) {}
 
-  // Token yenileme
-  async refreshToken(refreshToken: string) {
-    try {
-      // Refresh token'ı decode et
-      const decoded = this.jwtService.verify(refreshToken);
-      
-      // Kullanıcıyı bul
-      const user = await this.userModel.findById(decoded.sub).exec();
-      if (!user || !user.refreshTokenHash) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
+  // Profil bilgileri getir
+  async getProfile(userId: string) {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-      // Refresh token'ı doğrula
-      const isMatch = await bcrypt.compare(refreshToken, user.refreshTokenHash);
-      if (!isMatch) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      // Yeni access token oluştur  . payload, JWT içinde taşınacak veri paketidir.
-      const payload = {
-        sub: user._id,
+    return {
+      success: true,
+      user: {
+        id: user._id,
+        userId: user.userId,
         username: user.username,
         role: user.role,
-        userId: user.userId
-      };
-
-      const newAccessToken = this.jwtService.sign(payload, { 
-        expiresIn: '15m' 
-      });
-
-      return {
-        success: true,
-        accessToken: newAccessToken,
-        user: {
-          id: user._id,
-          userId: user.userId,
-          username: user.username,
-          role: user.role,
-          eMail: user.eMail
-        }
-      };
-    } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
+        eMail: user.eMail,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt
+      }
+    };
   }
 
-  // Logout
-  async logout(userId: string) {
-    await this.userModel.findByIdAndUpdate(
+  // Profil güncelleme
+  async updateProfile(userId: string, updateData: Partial<User>) {
+    const user = await this.userModel.findByIdAndUpdate(
       userId, 
-      { refreshTokenHash: undefined }
+      updateData, 
+      { new: true }
     ).exec();
     
-    return { success: true, message: 'Logged out successfully' };
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        userId: user.userId,
+        username: user.username,
+        role: user.role,
+        eMail: user.eMail
+      }
+    };
   }
 
   // Şifre değiştirme

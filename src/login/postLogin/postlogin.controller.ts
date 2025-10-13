@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, UseGuards, Request } from '@nestjs/common';
 import { PostloginService } from './postlogin.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 
@@ -6,17 +6,18 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 export class PostloginController {
   constructor(private readonly postloginService: PostloginService) {}
 
-  // Token yenileme
-  @Post('refresh')
-  async refreshToken(@Body() body: { refreshToken: string }) {
-    return this.postloginService.refreshToken(body.refreshToken);
+  // Profil bilgileri
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@Request() req: any) {
+    return this.postloginService.getProfile(req.user.sub);
   }
 
-  // Logout
-  @Post('logout')
+  // Profil güncelleme
+  @Put('profile')
   @UseGuards(JwtAuthGuard)
-  async logout(@Request() req: any) {
-    return this.postloginService.logout(req.user.userId);
+  async updateProfile(@Request() req: any, @Body() body: any) {
+    return this.postloginService.updateProfile(req.user.sub, body);
   }
 
   // Şifre değiştirme
