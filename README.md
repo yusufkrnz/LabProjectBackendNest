@@ -28,29 +28,23 @@
     <img src="media/3.png" alt="Sprint 1 - Screenshot 3" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="flex: 1; min-width: 300px;">
-    <img src="media/4.png" alt="Sprint 1 - Screenshot 4" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <img src="media/5.png" alt="Sprint 1 - Screenshot 5" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
   </div>
 </div>
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-  <div style="flex: 1; min-width: 300px;">
-    <img src="media/5.png" alt="Sprint 1 - Screenshot 5" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-  </div>
   <div style="flex: 1; min-width: 300px;">
     <img src="media/6.png" alt="Sprint 1 - Screenshot 6" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
   </div>
-</div>
-
-<div style="display: flex; flex-wrap: wrap; gap: 10px;">
   <div style="flex: 1; min-width: 300px;">
     <img src="media/7.png" alt="Sprint 1 - Screenshot 7" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
   </div>
-  <div style="flex: 1; min-width: 300px;">
-    <img src="media/8.png" alt="Sprint 1 - Screenshot 8" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-  </div>
 </div>
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+  <div style="flex: 1; min-width: 300px;">
+    <img src="media/8.png" alt="Sprint 1 - Screenshot 8" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  </div>
   <div style="flex: 1; min-width: 300px;">
     <img src="media/9.png" alt="Sprint 1 - Screenshot 9" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
   </div>
