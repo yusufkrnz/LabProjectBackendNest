@@ -8,18 +8,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: JWT_SECRET,
+      secretOrKey: process.env.JWT_SECRET || 'access_secret',
     });
   }
 
   async validate(payload: any) {
     // JWT payload'ından user bilgilerini döndür
-    return { 
+    const user = { 
       sub: payload.sub, 
-      userId: payload.userId,
-      role: payload.role,
-      roles: payload.roles || [payload.role], // roles array'i varsa kullan, yoksa role'den oluştur
+      userId: payload.userId,                 // dikkat edilmesi gerekn önemli bi kısım patlattı bizi
+      role: payload.role,                    // ✅ Decators guard için role string
+      roles: payload.roles || [payload.role], // ✅ Auth guard için roles array
       username: payload.username
     };
+    return user;
   }
 }

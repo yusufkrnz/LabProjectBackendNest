@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { User, UserSchema } from 'src/schemas/user.schema';
 import { UsersModule } from 'src/users/users.module'; 
 import { LocalStrategy } from './jwt/local.strategy';
+import { JwtStrategy } from './jwt/jwt.strategy';
 import { CommonModule } from '../common.module';
 import { RegisterDto} from "./dto/register.dto";
 import {LoginDto}from "./dto/login.dto"
@@ -24,7 +25,7 @@ import { AuthController } from './auth.controller';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   controllers:[AuthController],
-  providers: [AuthService, LocalStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

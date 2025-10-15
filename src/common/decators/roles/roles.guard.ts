@@ -19,19 +19,31 @@ canActivate(context: ExecutionContext): boolean {
         context.getClass(),
     ]
  );
- if(!requiredRoles||requiredRoles.length===0)return true;
+ if(!requiredRoles||requiredRoles.length===0) {
+   return true;
+ }
 
 
  const req  = context.switchToHttp().getRequest();
  
  // Gerçek JWT'den gelen user bilgisi
  const user = req.user;
- if(!user||!user.role)throw new ForbiddenException('User role not found');
+ if(!user||!user.role) {
+   throw new ForbiddenException('User role not found');
+ }
 
+ // Güvenli role mapping
+ const roleLevels = {
+   'admin': 2,
+   'user': 1
+ };
 
- const userLevel = ROLE_HIERARCHY[user.role]||0;
- const minReq =Math.max(...requiredRoles.map(r=>ROLE_HIERARCHY[r]||0));
- if(userLevel<minReq)throw new ForbiddenException('Insufficient permissions');
+ const userLevel = roleLevels[user.role] || 0;
+ const minReq = requiredRoles.length > 0 ? Math.max(...requiredRoles.map(r => roleLevels[r] || 0)) : 0;
+ 
+ if(userLevel < minReq) {
+   throw new ForbiddenException('Insufficient permissions');
+ }
 
     return true;
 }

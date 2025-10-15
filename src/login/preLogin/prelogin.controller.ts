@@ -3,7 +3,8 @@ import { PreloginService } from "./prelogin.service";
 import { User,UserSchema } from "src/schemas/user.schema";
 import { RolesEnum } from "src/common/decators/roles/roles.enum";
 import { ROLE_HIERARCHY } from "src/common/decators/roles/roles.constants";
-import { Roles, RolesGuard } from "src/common/auth/guards/roles.guard";
+import { Roles } from "src/common/decators/roles/roles.decator";
+import { RolesGuard } from "src/common/decators/roles/roles.guard";
 import { JwtAuthGuard } from "src/common/auth/jwt/jwt.guard";
 
 

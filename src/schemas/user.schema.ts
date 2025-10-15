@@ -32,6 +32,9 @@ gender:Gender;
 @Prop({required:true,enum:['admin','user'],default:'user'})
 role:string;
 
+@Prop({type:[String],default:['user']})
+roles:string[];
+
   @Prop({ type: String, default: null })
   refreshTokenHash?: string;
 

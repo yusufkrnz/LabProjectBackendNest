@@ -9,7 +9,9 @@ import { RolesGuard } from 'src/common/decators/roles/roles.guard';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 
+@ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(
@@ -24,13 +26,23 @@ export class UsersController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RolesEnum.ADMIN) // zamanlama kısmına bak role güvenliğinde geçicide olsa veriler anlık geri geldim vs derken 1 2 sn user verilerini gördüm bunu bi test et . 
+  @Roles(RolesEnum.ADMIN)
+  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @ApiResponse({ status: 200, description: 'List of all users' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  @ApiBearerAuth('JWT-auth')
   async findAll() {
     return this.usersService.findAll();
   }
 
   @Roles(RolesEnum.ADMIN)
   @Get(':userId')
+  @ApiOperation({ summary: 'Get user by userId (Admin only)' })
+  @ApiParam({ name: 'userId', description: 'User ID number' })
+  @ApiResponse({ status: 200, description: 'User found' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiBearerAuth('JWT-auth')
   async findOne(@Param('userId') userId: string) {
     const numericId = Number(userId);
     if (isNaN(numericId)) throw new NotFoundException('Invalid user id');
