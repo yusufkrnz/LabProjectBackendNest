@@ -21,6 +21,10 @@ async function bootstrap() {
   }));
   
   app.use(cookieParser());
+  // CORS ayarı ?
+  app.enableCors({
+    origin:[        ],
+  });
 
 
 const config = new DocumentBuilder()

@@ -38,6 +38,12 @@ roles:string[];
   @Prop({ type: String, default: null })
   refreshTokenHash?: string;
 
+  @Prop({ type: String, default: null })
+  googleId?: string;
+
+  @Prop({ type: String, default: 'local' })
+  provider?: string; // 'local' | 'google'
+
 }
 
 export const UserSchema=SchemaFactory.createForClass(User);

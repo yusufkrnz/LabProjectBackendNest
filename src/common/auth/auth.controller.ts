@@ -1,4 +1,4 @@
-import { Controller, Req, Res, Body, UseGuards, UnauthorizedException } from "@nestjs/common";
+import { Controller, Req, Res, Body, UseGuards, UnauthorizedException, Get } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { Post } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger";
@@ -9,6 +9,7 @@ import { RefreshDto } from "./dto/refresh.dto";
 import { RefreshTokenGuard } from "./guards/refresh-token.guard";
 import { JwtAuthGuard } from "./jwt/jwt.guard";
 import { CookieUtil } from "./utils/cookie.util";
+import { GoogleAuthGuard } from './guards/google.guard';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -84,6 +85,38 @@ export class AuthController {
         
         return {
             message: 'Logout successful'
+        };
+    }
+
+    // Google OAuth: Redirect to Google
+    @ApiOperation({ summary: 'Google OAuth - redirect' })
+    @Get('google')
+    @UseGuards(GoogleAuthGuard)
+    // This route will redirect to Google, no body is returned
+    async googleAuth() { return; }
+
+    // Google OAuth: Callback handler
+    @ApiOperation({ summary: 'Google OAuth - callback' })
+    @Get('google/callback')
+    @UseGuards(GoogleAuthGuard)
+    async googleCallback(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        // req.user comes from GoogleStrategy.validate
+        const googleUser = (req as any).user as {
+            provider: 'google';
+            googleId: string;
+            email?: string;
+            displayName?: string;
+        };
+
+        // Delegate to AuthService to find/create user and issue tokens
+        const result = await this.authService.loginWithGoogle(googleUser);
+
+        CookieUtil.setRefreshTokenCookie(res, result.tokens.refreshToken);
+
+        return {
+            message: result.message,
+            user: result.user,
+            accessToken: result.tokens.accessToken,
         };
     }
      

@@ -205,4 +205,55 @@ export class AuthService {
       message: 'Logout successful'
     };
   }
+
+  // Google OAuth login flow
+  async loginWithGoogle(googleUser: {
+    provider: 'google';
+    googleId: string;
+    email?: string;
+    displayName?: string;
+  }) {
+    // 1) Try to find user by googleId
+    let user = await this.userModel.findOne({ googleId: googleUser.googleId }).exec();
+
+    // 2) Fallback: match by email if available
+    if (!user && googleUser.email) {
+      user = await this.userModel.findOne({ eMail: googleUser.email }).exec();
+      if (user) {
+        user.set({ googleId: googleUser.googleId });
+        await user.save();
+      }
+    }
+
+    // 3) Create new user if still not found
+    if (!user) {
+      const lastUser = await this.userModel.findOne().sort({ userId: -1 }).exec();
+      const nextUserId = lastUser?.userId ? lastUser.userId + 1 : 1;
+      user = await new this.userModel({
+        userId: nextUserId,
+        username: googleUser.displayName || googleUser.email || `google_${googleUser.googleId}`,
+        eMail: googleUser.email,
+        role: 'user',
+        roles: ['user'],
+        isActive: true,
+        googleId: googleUser.googleId,
+      }).save();
+    }
+
+    // 4) Issue tokens (same flow as classic login)
+    const tokens = this.generateTokens(user);
+    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
+    await this.setRefreshTokenHash((user._id as any).toString(), refreshTokenHash);
+
+    return {
+      message: 'Login successful',
+      user: {
+        id: user._id,
+        username: user.username,
+        role: user.role,
+        roles: user.roles,
+      },
+      tokens,
+    };
+  }
 }
