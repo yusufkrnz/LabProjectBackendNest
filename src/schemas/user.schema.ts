@@ -26,8 +26,8 @@ passwordHash:string
 @Prop({default:true})
 isActive:boolean
 
-@Prop({required:true,enum:Gender})
-gender:Gender;
+@Prop({ required: true, type: String, enum: Gender })
+gender: Gender;
 
 @Prop({required:true,enum:['admin','user'],default:'user'})
 role:string;
