@@ -20,7 +20,7 @@ export class UsersService {
       passwordHash,
       role,
       eMail: `${username}@example.com`,
-      gender: Gender.Male,
+      gender: Gender.MALE,
       userId: nextUserId,
     });
     return newUser.save();
@@ -55,20 +55,18 @@ export class UsersService {
   }
 
   async resetUsers(): Promise<{ success: boolean; count: number }> {
-    // Tüm kullanıcıları sil
     await this.userModel.deleteMany({}).exec();
 
-    // 30 yeni kullanıcı oluştur (userId 1'den başlar)
     const users: Partial<User>[] = [];
     for (let i = 1; i <= 30; i++) {
       const passwordHash = await bcrypt.hash(`password${i}`, 10);
       users.push({
         username: `User${i}`,
         eMail: `user${i}@example.com`,
-        gender: i % 2 === 0 ? Gender.Male : Gender.Female,
+        gender: i % 2 === 0 ? Gender.MALE : Gender.FEMALE,
         role: 'user',
         isActive: true,
-        userId: i, // 1, 2, 3, ... 30
+        userId: i, 
         passwordHash,
       });
     }
