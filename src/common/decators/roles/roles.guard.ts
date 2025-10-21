@@ -33,6 +33,9 @@ canActivate(context: ExecutionContext): boolean {
  }
 
  // Güvenli role mapping
+ // düzeltilecek burası 
+ // çünkü biz zaten hiyerarşik bir yapıda roles var 
+ // ve bunu tekrar yazmak yerine ROLE_HIERARCHY kullanacağız.
  const roleLevels = {
    'admin': 2,
    'user': 1
