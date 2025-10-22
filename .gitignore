@@ -21,6 +21,12 @@ pnpm-debug.log*
 
 google.json
 
+# Docker volumes (optional)
+docker-data/
 
+# Monitoring temp files
+prometheus-simple.yml
+docker-compose-simple.yml
+setup-monitoring.sh
 
 

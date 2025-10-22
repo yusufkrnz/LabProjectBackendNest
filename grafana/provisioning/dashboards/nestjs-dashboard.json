@@ -1,0 +1,124 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "NestJS Application Overview",
+    "uid": "nestjs-overview",
+    "tags": ["nestjs", "application"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "type": "graph",
+        "title": "HTTP Request Rate",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(nestjs_http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "requests/sec",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "graph",
+        "title": "HTTP Request Duration",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(nestjs_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(nestjs_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "seconds",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "graph",
+        "title": "Memory Usage",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "nestjs_memory_usage_bytes{type=\"rss\"}",
+            "legendFormat": "RSS Memory",
+            "refId": "A"
+          },
+          {
+            "expr": "nestjs_memory_usage_bytes{type=\"heapUsed\"}",
+            "legendFormat": "Heap Used",
+            "refId": "B"
+          },
+          {
+            "expr": "nestjs_memory_usage_bytes{type=\"heapTotal\"}",
+            "legendFormat": "Heap Total",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "bytes",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "type": "graph",
+        "title": "Active Connections",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "nestjs_active_connections",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "connections",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "type": "graph",
+        "title": "HTTP Status Codes",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(nestjs_http_requests_total[5m])) by (status_code)",
+            "legendFormat": "{{status_code}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "requests/sec",
+            "min": 0
+          }
+        ]
+      }
+    ],
+    "schemaVersion": 30,
+    "version": 1,
+    "refresh": "5s"
+  }
+}
