@@ -26,8 +26,8 @@ import { MetricsController } from './metrics/metrics.controller';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Force local MongoDB to bypass Atlas temporarily
-    MongooseModule.forRoot('mongodb://localhost:27017/lab_project_db'),
+    // MongoDB Atlas connection
+    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/lab_project_db'),
   
     LoginModule, 
     CommonModule, 
