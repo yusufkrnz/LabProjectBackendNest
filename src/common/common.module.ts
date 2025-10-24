@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { JwtAuthService } from './auth/jwt/jwt.service';
 import { JWT_SECRET } from './constants/auth.constants';
 
 @Module({
@@ -10,7 +9,6 @@ import { JWT_SECRET } from './constants/auth.constants';
       signOptions: { expiresIn: '1h' },
     }),
   ],
-  providers: [JwtAuthService],
-  exports: [JwtAuthService, JwtModule], // Diğer modüller kullanabilsin
+  exports: [JwtModule], // Sadece JwtModule'ü export et
 })
 export class CommonModule {}

@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
-import { RolesEnum } from './common/decators/roles/roles.enum';
+import { RolesEnum } from './common/decorators/roles/roles.enum';
 
 @Controller()
 export class AppController {

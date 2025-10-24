@@ -21,9 +21,13 @@ async function bootstrap() {
   }));
   
   app.use(cookieParser());
-  // CORS ayarı ?
+  
+  // CORS ayarı - Frontend için
   app.enableCors({
-    origin:[        ],
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   });
 
 

@@ -9,12 +9,16 @@ import { CookieUtil } from '../utils/cookie.util';
 @Injectable()
 export class RefreshStrategy extends PassportStrategy(Strategy){
     constructor(private authService:AuthService){
+        if (!process.env.JWT_REFRESH_SECRET) {
+            throw new Error('JWT_REFRESH_SECRET is not configured!');
+        }
+        
         super({
          jwtFromRequest:ExtractJwt.fromExtractors([
             (req)=>CookieUtil.getRefreshTokenCookie(req),
             ExtractJwt.fromAuthHeaderAsBearerToken(),
          ]),
-         secretOrKey:process.env.JWT_REFRESH_SECRET||'refresh_secret',
+         secretOrKey:process.env.JWT_REFRESH_SECRET,
          passReqToCallback:true,
         });
     }
