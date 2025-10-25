@@ -6,9 +6,13 @@ import { JWT_SECRET } from '../../constants/auth.constants';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured!');
+    }
+    
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET || 'access_secret',
+      secretOrKey: process.env.JWT_SECRET,
     });
   }
 

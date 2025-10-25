@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { User } from 'src/schemas/user.schema';
 import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
 import { UsersService } from 'src/users/users.service';
 import { PasswordUtil } from './utils/password.util';
 import { RegisterDto } from './dto/register.dto';
@@ -15,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 export class AuthService {
   constructor( 
     private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
     @InjectModel(User.name) private userModel: Model<User>
   ) {}
 
@@ -50,12 +51,14 @@ export class AuthService {
 
   async validateRefreshToken(refreshToken: string, payload: any) {
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh_secret') as any;
+      const decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      }) as any;
       const user = await this.findById(decoded.sub as string);
 
-    if (!user || !(await bcrypt.compare(refreshToken, user.refreshTokenHash || ''))) {
-  throw new UnauthorizedException('Invalid refresh token');
-}
+      if (!user || !(await bcrypt.compare(refreshToken, user.refreshTokenHash || ''))) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
 
       return user;
     } catch {
@@ -63,8 +66,15 @@ export class AuthService {
     }
   }
 
-  async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.findByUsername(username);
+  async validateUser(usernameOrEmail: string, password: string): Promise<any> {
+    // Hem username hem email ile arama yap
+    let user = await this.findByUsername(usernameOrEmail);
+    
+    // Username ile bulunamazsa email ile dene
+    if (!user) {
+      user = await this.userModel.findOne({ eMail: usernameOrEmail }).exec();
+    }
+    
     if (user && await PasswordUtil.verifyPassword(password, user.passwordHash)) {
       return user;
     }
@@ -81,17 +91,12 @@ export class AuthService {
       userId: user.userId
     };
     
-    const accessToken = jwt.sign(
-      payload,
-      process.env.JWT_SECRET || 'access_secret',
-      { expiresIn: '15m' }
-    );
+    const accessToken = this.jwtService.sign(payload);
     
-    const refreshToken = jwt.sign(
-      payload,
-      process.env.JWT_REFRESH_SECRET || 'refresh_secret',
-      { expiresIn: '7d' }
-    );
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: '7d'
+    });
     
     return { accessToken, refreshToken };
   }
@@ -175,7 +180,9 @@ export class AuthService {
   async refresh(refreshToken: string) {
     try {
       // Verify refresh token
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh_secret') as any;
+      const decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      }) as any;
       const user = await this.findById(decoded.sub);
       
       // Check if refresh token hash matches

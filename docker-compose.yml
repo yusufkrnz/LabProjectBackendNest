@@ -1,6 +1,21 @@
 version: "3.8"
 
 services:
+  backend:
+    build: .
+    container_name: labproject-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/labproject
+    depends_on:
+      - prometheus
+      - mongodb
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    command: npm run start:prod
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -10,6 +25,15 @@ services:
       - ./prometheus-simple.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
 
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=labproject
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -30,3 +54,4 @@ services:
 volumes:
   prometheus_data:
   grafana_data:
+  mongodb_data:

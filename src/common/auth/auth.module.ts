@@ -20,7 +20,7 @@ import { AuthController } from './auth.controller';
     PassportModule,
     CommonModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'access_secret',
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '15m' },
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
