@@ -1,56 +1,25 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
-import { Response } from 'express';
+/**
+ * @deprecated Bu filter artık kullanılmamalıdır.
+ * Global exception filter (GlobalExceptionFilter) tüm exception'ları handle ediyor.
+ * Bu dosya sadece referans için tutulmaktadır ve yakında kaldırılacaktır.
+ * 
+ * Lütfen bunun yerine global exception handling sistemini kullanın:
+ * - Tüm exception'lar otomatik olarak GlobalExceptionFilter tarafından yakalanır
+ * - Custom exception'lar için: src/common/exceptions/custom-exceptions kullanın
+ */
 
+import { ExceptionFilter, Catch, ArgumentsHost } from '@nestjs/common';
 
-// buraya özel bi helper yazılıp direk çeekeriz
-// hata mejajları , message dönüşlerini
-//  daha temiz tek tip dönüş iin bi merkez sınıf inşa edilecek
-
+/**
+ * @deprecated Bu filter artık kullanılmamalıdır.
+ * GlobalExceptionFilter kullanılmalıdır.
+ */
 @Catch()
 export class AuthExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest();
-
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-
-    // 1. HttpException ise status ve message al
-    if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      message = exception.getResponse() as string;
-    }
-
-    // 2. Auth hatalarını özel formatla döndür
-    if (status === HttpStatus.UNAUTHORIZED) {
-      response.status(status).json({
-        statusCode: status,
-        message: 'Authentication failed',
-        error: 'Unauthorized',
-        timestamp: new Date().toISOString(),
-        path: request.url,
-      });
-      return;
-    }
-
-    if (status === HttpStatus.FORBIDDEN) {
-      response.status(status).json({
-        statusCode: status,
-        message: 'Insufficient permissions',
-        error: 'Forbidden',
-        timestamp: new Date().toISOString(),
-        path: request.url,
-      });
-      return;
-    }
-
-    // 3. Diğer hataları normal formatla döndür
-    response.status(status).json({
-      statusCode: status,
-      message: message,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-    });
+    // Bu filter artık kullanılmamalıdır
+    // GlobalExceptionFilter tüm exception'ları handle ediyor
+    // Bu dosya sadece backward compatibility için tutulmaktadır
+    throw new Error('This filter is deprecated. Use GlobalExceptionFilter instead.');
   }
 }

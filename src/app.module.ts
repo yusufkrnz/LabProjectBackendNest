@@ -17,6 +17,7 @@ import { AlgorithmModule } from './algorithm/algorithm.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { MetricsService } from './metrics/metrics.service';
 import { MetricsController } from './metrics/metrics.controller';
+import { ExceptionsModule } from './common/exceptions/exceptions.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { MetricsController } from './metrics/metrics.controller';
     ProjectsModule,
     AlgorithmModule,
     MetricsModule,
+    ExceptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, BusinessException, handleMongoError } from 'src/common/exceptions';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
@@ -108,7 +109,13 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await this.findByUsername(username);
     if (existingUser) {
-      throw new ConflictException('Username already exists');
+      throw new ConflictException('Username already exists', 'DUPLICATE_USERNAME');
+    }
+    
+    // Check if email already exists
+    const existingEmail = await this.userModel.findOne({ eMail }).exec();
+    if (existingEmail) {
+      throw new ConflictException('Email already exists', 'DUPLICATE_EMAIL');
     }
     
     // Generate unique userId
@@ -128,7 +135,12 @@ export class AuthService {
       roles: [role]
     });
     
-    const savedUser = await newUser.save();
+    let savedUser;
+    try {
+      savedUser = await newUser.save();
+    } catch (error: any) {
+      handleMongoError(error);
+    }
     
     // Generate tokens
     const tokens = this.generateTokens(savedUser);
@@ -236,15 +248,19 @@ export class AuthService {
     if (!user) {
       const lastUser = await this.userModel.findOne().sort({ userId: -1 }).exec();
       const nextUserId = lastUser?.userId ? lastUser.userId + 1 : 1;
-      user = await new this.userModel({
-        userId: nextUserId,
-        username: googleUser.displayName || googleUser.email || `google_${googleUser.googleId}`,
-        eMail: googleUser.email,
-        role: 'user',
-        roles: ['user'],
-        isActive: true,
-        googleId: googleUser.googleId,
-      }).save();
+      try {
+        user = await new this.userModel({
+          userId: nextUserId,
+          username: googleUser.displayName || googleUser.email || `google_${googleUser.googleId}`,
+          eMail: googleUser.email,
+          role: 'user',
+          roles: ['user'],
+          isActive: true,
+          googleId: googleUser.googleId,
+        }).save();
+      } catch (error: any) {
+        handleMongoError(error);
+      }
     }
 
     // 4) Issue tokens (same flow as classic login)
