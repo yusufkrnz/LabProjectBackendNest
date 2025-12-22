@@ -4,13 +4,16 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { RefreshTokenStrategy } from './refreshToken.strategy';
+import { User } from 'src/schemas/user.schema';
+import { PartialUpdateUserDto, UpdateUserDto } from 'src/users/dto/update-user.dto';
+
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async getTokens(userId: string, email: string) {
     const jwtPayload = { sub: userId, email };
@@ -33,6 +36,7 @@ export class AuthService {
 
   async updateRefreshToken(userId: string, refreshToken: string) {
     const hash = await bcrypt.hash(refreshToken, 10);
+    await this.usersService.updateUser(userId, { refreshToken: hash });
   }
 
   async signin(dto: any) {
@@ -41,14 +45,29 @@ export class AuthService {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
-    const tokens = await this.getTokens(user.id, user.email);
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    const tokens = await this.getTokens(user._id, user.email);
+    await this.updateRefreshToken(user._id, tokens.refreshToken);
     return tokens;
   }
 
+
+  //id: string, updateUserDto: UpdateUserDto    
+
   async logout(userId: string) {
-    await this.usersService.update(userId, { refreshToken: null });
+    const updateDto: PartialUpdateUserDto = {
+      refreshToken: null,
+    };
+    await this.usersService.updateUser(userId, updateDto);
     return { message: 'Logged out' };
   }
-  async refreshToken(userId: string, refreshToken: string) {}
+
+
+  async refreshToken(userId: string, refreshToken: string) { }
+
+
+
+
+
+
+
 }

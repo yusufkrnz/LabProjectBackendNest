@@ -1,25 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  Put,
-} from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { UsersService } from './users.service';
 
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-};
 
 @Controller('users')
 export class UsersController {
+  constructor(private readonly usersService: UsersService) { }
   @Get()
-  findById(@Param('id') id: string): User[] {
-    return UsersService.findOne(id);
+  async findById(@Param('email') email: string) {
+    return await this.usersService.findById(email);
   }
 }

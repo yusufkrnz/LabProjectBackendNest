@@ -32,3 +32,4 @@ setup-monitoring.sh
 docs/
 docs/AUTH_PROBLEMS_ANALYSIS.md
 docs/NESTJS_PROBLEMS_ANALYSIS.md
+/generated/prisma
