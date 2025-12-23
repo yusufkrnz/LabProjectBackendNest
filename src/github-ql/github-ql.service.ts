@@ -2,9 +2,21 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { graphql } from '@octokit/graphql';
-import { GithubRepository, GithubRepositoryDocument } from '../schemas/github-repository.schema';
-import { UserGithubScan, UserGithubScanDocument } from '../schemas/user-github-scan.schema';
+import {
+  GithubRepository,
+  GithubRepositoryDocument,
+} from '../schemas/github-repository.schema';
+import {
+  UserGithubScan,
+  UserGithubScanDocument,
+} from '../schemas/user-github-scan.schema';
 import { RepositoryAnalyzer } from './repository-analyzer.service';
+import { TechStackMatcherService } from './tech-stack-matcher.service';
+import { TechStackExtractorService } from './tech-stack-extractor.service';
+import {
+  buildUserRepositoriesQuery,
+  buildSingleRepositoryQuery,
+} from './helpers/graphql-query-builder';
 
 @Injectable()
 export class GithubQlService {
@@ -17,11 +29,15 @@ export class GithubQlService {
     @InjectModel(UserGithubScan.name)
     private userGithubScanModel: Model<UserGithubScanDocument>,
     private repositoryAnalyzer: RepositoryAnalyzer,
+    private techStackMatcher: TechStackMatcherService,
+    private techStackExtractor: TechStackExtractorService,
   ) {
     // Initialize GitHub GraphQL client with authentication
     const githubToken = process.env.GITHUB_TOKEN;
     if (!githubToken) {
-      this.logger.warn('GITHUB_TOKEN not found in environment variables. GitHub API calls will fail.');
+      this.logger.warn(
+        'GITHUB_TOKEN not found in environment variables. GitHub API calls will fail.',
+      );
     }
     this.graphqlWithAuth = graphql.defaults({
       headers: {
@@ -33,7 +49,11 @@ export class GithubQlService {
   /**
    * Scan all repositories for a GitHub user
    */
-  async scanUserRepositories(username: string, maxRepos: number = 50, forceRefresh: boolean = false): Promise<any> {
+  async scanUserRepositories(
+    username: string,
+    maxRepos: number = 50,
+    forceRefresh: boolean = false,
+  ): Promise<any> {
     try {
       this.logger.log(`Scanning repositories for user: ${username}`);
 
@@ -41,11 +61,13 @@ export class GithubQlService {
       if (!forceRefresh) {
         const existingData = await this.githubRepoModel.find({
           'owner.login': username,
-          scannedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+          scannedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
         });
 
         if (existingData.length > 0) {
-          this.logger.log(`Returning cached data for ${username} (${existingData.length} repos)`);
+          this.logger.log(
+            `Returning cached data for ${username} (${existingData.length} repos)`,
+          );
           return {
             cached: true,
             count: existingData.length,
@@ -54,80 +76,8 @@ export class GithubQlService {
         }
       }
 
-      // Fetch repositories from GitHub
-      const query = `
-        query($username: String!, $first: Int!) {
-          user(login: $username) {
-            repositories(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}) {
-              totalCount
-              pageInfo {
-                hasNextPage
-                endCursor
-              }
-              nodes {
-                id
-                name
-                nameWithOwner
-                description
-                url
-                homepageUrl
-                isPrivate
-                isFork
-                stargazerCount
-                forkCount
-                watchers { totalCount }
-                primaryLanguage { 
-                  name 
-                  color 
-                }
-                languages(first: 10) {
-                  edges {
-                    size
-                    node { name }
-                  }
-                  totalSize
-                }
-                repositoryTopics(first: 10) {
-                  nodes { 
-                    topic { name } 
-                  }
-                }
-                createdAt
-                updatedAt
-                pushedAt
-                diskUsage
-                defaultBranchRef { 
-                  name 
-                  target {
-                    ... on Commit {
-                      history(first: 5) {
-                        nodes {
-                          oid
-                          message
-                          author {
-                            name
-                          }
-                          committedDate
-                        }
-                      }
-                    }
-                  }
-                }
-                licenseInfo { 
-                  name 
-                  key 
-                }
-                owner {
-                  login
-                  avatarUrl
-                  url
-                  __typename
-                }
-              }
-            }
-          }
-        }
-      `;
+      // Fetch repositories from GitHub using centralized query builder
+      const query = buildUserRepositoriesQuery();
 
       const response: any = await this.graphqlWithAuth(query, {
         username,
@@ -135,7 +85,10 @@ export class GithubQlService {
       });
 
       if (!response.user) {
-        throw new HttpException(`User ${username} not found on GitHub`, HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          `User ${username} not found on GitHub`,
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       const repositories = response.user.repositories.nodes;
@@ -148,7 +101,9 @@ export class GithubQlService {
         savedRepos.push(saved);
       }
 
-      this.logger.log(`Successfully scanned ${savedRepos.length} repositories for ${username}`);
+      this.logger.log(
+        `Successfully scanned ${savedRepos.length} repositories for ${username}`,
+      );
 
       return {
         cached: false,
@@ -157,12 +112,17 @@ export class GithubQlService {
         hasMore: response.user.repositories.pageInfo.hasNextPage,
         repositories: savedRepos,
       };
-
     } catch (error) {
-      this.logger.error(`Error scanning repositories for ${username}:`, error.message);
+      this.logger.error(
+        `Error scanning repositories for ${username}:`,
+        error.message,
+      );
 
       if (error.status === 401) {
-        throw new HttpException('Invalid GitHub token. Please check GITHUB_TOKEN in .env', HttpStatus.UNAUTHORIZED);
+        throw new HttpException(
+          'Invalid GitHub token. Please check GITHUB_TOKEN in .env',
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       throw new HttpException(
@@ -175,7 +135,11 @@ export class GithubQlService {
   /**
    * Scan a single repository
    */
-  async scanSingleRepository(owner: string, name: string, forceRefresh: boolean = false): Promise<any> {
+  async scanSingleRepository(
+    owner: string,
+    name: string,
+    forceRefresh: boolean = false,
+  ): Promise<any> {
     try {
       this.logger.log(`Scanning repository: ${owner}/${name}`);
 
@@ -185,7 +149,7 @@ export class GithubQlService {
       if (!forceRefresh) {
         const existing = await this.githubRepoModel.findOne({
           fullName,
-          scannedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+          scannedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
         });
 
         if (existing) {
@@ -194,74 +158,26 @@ export class GithubQlService {
         }
       }
 
-      const query = `
-        query($owner: String!, $name: String!) {
-          repository(owner: $owner, name: $name) {
-            id
-            name
-            nameWithOwner
-            description
-            url
-            homepageUrl
-            isPrivate
-            isFork
-            stargazerCount
-            forkCount
-            watchers { totalCount }
-            primaryLanguage { name color }
-            languages(first: 10) {
-              edges {
-                size
-                node { name }
-              }
-              totalSize
-            }
-            repositoryTopics(first: 10) {
-              nodes { topic { name } }
-            }
-            createdAt
-            updatedAt
-            pushedAt
-            diskUsage
-            defaultBranchRef { 
-              name 
-              target {
-                ... on Commit {
-                  history(first: 5) {
-                    nodes {
-                      oid
-                      message
-                      author { name }
-                      committedDate
-                    }
-                  }
-                }
-              }
-            }
-            licenseInfo { name key }
-            owner {
-              login
-              avatarUrl
-              url
-              __typename
-            }
-          }
-        }
-      `;
+      const query = buildSingleRepositoryQuery();
 
       const response: any = await this.graphqlWithAuth(query, { owner, name });
 
       if (!response.repository) {
-        throw new HttpException(`Repository ${fullName} not found`, HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          `Repository ${fullName} not found`,
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       const transformedRepo = this.transformRepositoryData(response.repository);
       const saved = await this.saveRepositoryData(transformedRepo);
 
       return { cached: false, repository: saved };
-
     } catch (error) {
-      this.logger.error(`Error scanning repository ${owner}/${name}:`, error.message);
+      this.logger.error(
+        `Error scanning repository ${owner}/${name}:`,
+        error.message,
+      );
       throw new HttpException(
         error.message || 'Failed to scan repository',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
@@ -272,19 +188,29 @@ export class GithubQlService {
   /**
    * Get stored repositories for a user
    */
-  async getStoredRepositories(username: string): Promise<GithubRepositoryDocument[]> {
-    return this.githubRepoModel.find({ 'owner.login': username }).sort({ scannedAt: -1 });
+  async getStoredRepositories(
+    username: string,
+  ): Promise<GithubRepositoryDocument[]> {
+    return this.githubRepoModel
+      .find({ 'owner.login': username })
+      .sort({ scannedAt: -1 });
   }
 
   /**
    * Get a single stored repository
    */
-  async getStoredRepository(owner: string, name: string): Promise<GithubRepositoryDocument> {
+  async getStoredRepository(
+    owner: string,
+    name: string,
+  ): Promise<GithubRepositoryDocument> {
     const fullName = `${owner}/${name}`;
     const repo = await this.githubRepoModel.findOne({ fullName });
 
     if (!repo) {
-      throw new HttpException(`Repository ${fullName} not found in database`, HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        `Repository ${fullName} not found in database`,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     return repo;
@@ -297,15 +223,21 @@ export class GithubQlService {
     const repos = await this.githubRepoModel.find({ 'owner.login': username });
 
     if (repos.length === 0) {
-      throw new HttpException(`No data found for user ${username}. Please scan first.`, HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        `No data found for user ${username}. Please scan first.`,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
-    const totalStars = repos.reduce((sum, repo) => sum + repo.stargazersCount, 0);
+    const totalStars = repos.reduce(
+      (sum, repo) => sum + repo.stargazersCount,
+      0,
+    );
     const totalForks = repos.reduce((sum, repo) => sum + repo.forksCount, 0);
 
     // Language statistics
     const languageStats = new Map<string, number>();
-    repos.forEach(repo => {
+    repos.forEach((repo) => {
       if (repo.primaryLanguage) {
         const count = languageStats.get(repo.primaryLanguage.name) || 0;
         languageStats.set(repo.primaryLanguage.name, count + 1);
@@ -322,7 +254,9 @@ export class GithubQlService {
       totalStars,
       totalForks,
       languages,
-      mostStarredRepo: repos.sort((a, b) => b.stargazersCount - a.stargazersCount)[0],
+      mostStarredRepo: repos.sort(
+        (a, b) => b.stargazersCount - a.stargazersCount,
+      )[0],
       lastScanned: repos[0]?.scannedAt,
     };
   }
@@ -331,7 +265,9 @@ export class GithubQlService {
    * Delete stored repositories for a user
    */
   async deleteUserRepositories(username: string): Promise<any> {
-    const result = await this.githubRepoModel.deleteMany({ 'owner.login': username });
+    const result = await this.githubRepoModel.deleteMany({
+      'owner.login': username,
+    });
     return {
       deleted: result.deletedCount,
       message: `Deleted ${result.deletedCount} repositories for ${username}`,
@@ -359,6 +295,9 @@ export class GithubQlService {
       date: new Date(commit.committedDate),
     }));
 
+    // Extract tech stack from files
+    const techStack = this.extractTechStack(repo);
+
     return {
       githubId: repo.id,
       name: repo.name,
@@ -377,31 +316,71 @@ export class GithubQlService {
       stargazersCount: repo.stargazerCount,
       forksCount: repo.forkCount,
       watchersCount: repo.watchers?.totalCount || 0,
-      primaryLanguage: repo.primaryLanguage ? {
-        name: repo.primaryLanguage.name,
-        color: repo.primaryLanguage.color,
-      } : null,
+      primaryLanguage: repo.primaryLanguage
+        ? {
+            name: repo.primaryLanguage.name,
+            color: repo.primaryLanguage.color,
+          }
+        : null,
       languages,
-      topics: repo.repositoryTopics?.nodes?.map((node: any) => node.topic.name) || [],
+      topics:
+        repo.repositoryTopics?.nodes?.map((node: any) => node.topic.name) || [],
       repositoryCreatedAt: new Date(repo.createdAt),
       repositoryUpdatedAt: new Date(repo.updatedAt),
       pushedAt: repo.pushedAt ? new Date(repo.pushedAt) : null,
       diskUsage: repo.diskUsage || 0,
       recentCommits,
-      licenseInfo: repo.licenseInfo ? {
-        name: repo.licenseInfo.name,
-        key: repo.licenseInfo.key,
-      } : null,
+      licenseInfo: repo.licenseInfo
+        ? {
+            name: repo.licenseInfo.name,
+            key: repo.licenseInfo.key,
+          }
+        : null,
       defaultBranch: repo.defaultBranchRef?.name || 'main',
       scannedAt: new Date(),
+
+      // Tech Stack Data
+      detectedFrameworks: techStack.frameworks,
+      detectedDatabases: techStack.databases,
+      detectedTools: techStack.tools,
+      detectedLibraries: techStack.libraries,
+      packageJson: techStack.packageJson,
+      dependencies: techStack.dependencies,
+      hasDocker: techStack.hasDocker,
+      hasCICD: techStack.hasCICD,
+      hasTests: techStack.hasTests,
+      readmeContent: techStack.readmeContent,
     };
+  }
+
+  /**
+   * Extract tech stack from repository files
+   * Delegates to TechStackExtractorService for clean, SOLID-compliant implementation
+   */
+  private extractTechStack(repo: any): {
+    frameworks: string[];
+    databases: string[];
+    tools: string[];
+    libraries: string[];
+    packageJson: any;
+    dependencies: string[];
+    hasDocker: boolean;
+    hasCICD: boolean;
+    hasTests: boolean;
+    readmeContent: string;
+  } {
+    return this.techStackExtractor.extractTechStack(repo);
   }
 
   /**
    * Save or update repository data in MongoDB
    */
-  private async saveRepositoryData(repoData: any): Promise<GithubRepositoryDocument> {
-    const existing = await this.githubRepoModel.findOne({ githubId: repoData.githubId });
+  private async saveRepositoryData(
+    repoData: any,
+  ): Promise<GithubRepositoryDocument> {
+    const existing = await this.githubRepoModel.findOne({
+      githubId: repoData.githubId,
+    });
 
     if (existing) {
       // Update existing record
@@ -417,7 +396,9 @@ export class GithubQlService {
   /**
    * Check if user is eligible for GitHub scan (weekly limit)
    */
-  async checkScanEligibility(userId: string): Promise<{ eligible: boolean; reason?: string; nextAvailableAt?: Date }> {
+  async checkScanEligibility(
+    userId: string,
+  ): Promise<{ eligible: boolean; reason?: string; nextAvailableAt?: Date }> {
     const scanRecord = await this.userGithubScanModel.findOne({ userId });
 
     if (!scanRecord) {
@@ -442,7 +423,11 @@ export class GithubQlService {
   /**
    * Scan user repositories with weekly limit check
    */
-  async scanUserRepositoriesWithLimit(userId: string, username: string, maxRepos: number = 50): Promise<any> {
+  async scanUserRepositoriesWithLimit(
+    userId: string,
+    username: string,
+    maxRepos: number = 50,
+  ): Promise<any> {
     // Check eligibility
     const eligibility = await this.checkScanEligibility(userId);
 
@@ -468,7 +453,10 @@ export class GithubQlService {
   /**
    * Update user scan record after successful scan
    */
-  private async updateScanRecord(userId: string, githubUsername: string): Promise<void> {
+  private async updateScanRecord(
+    userId: string,
+    githubUsername: string,
+  ): Promise<void> {
     const now = new Date();
     const nextScanDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
 
@@ -494,14 +482,21 @@ export class GithubQlService {
       await newRecord.save();
     }
 
-    this.logger.log(`Updated scan record for user ${userId}. Next scan available at: ${nextScanDate}`);
+    this.logger.log(
+      `Updated scan record for user ${userId}. Next scan available at: ${nextScanDate}`,
+    );
   }
 
   /**
    * Scan GitHub repositories on user registration (first time, no limit)
    */
-  async scanOnRegistration(userId: string, githubUsername: string): Promise<any> {
-    this.logger.log(`Performing initial GitHub scan for new user: ${userId} (${githubUsername})`);
+  async scanOnRegistration(
+    userId: string,
+    githubUsername: string,
+  ): Promise<any> {
+    this.logger.log(
+      `Performing initial GitHub scan for new user: ${userId} (${githubUsername})`,
+    );
 
     try {
       // Scan repositories
@@ -513,7 +508,10 @@ export class GithubQlService {
       this.logger.log(`Successfully completed initial scan for user ${userId}`);
       return result;
     } catch (error) {
-      this.logger.error(`Failed to scan GitHub on registration for user ${userId}:`, error.message);
+      this.logger.error(
+        `Failed to scan GitHub on registration for user ${userId}:`,
+        error.message,
+      );
       // Don't throw error - registration should succeed even if GitHub scan fails
       return null;
     }
@@ -529,7 +527,7 @@ export class GithubQlService {
       return {
         hasScanned: false,
         eligible: true,
-        message: 'You haven\'t scanned your GitHub repositories yet.',
+        message: "You haven't scanned your GitHub repositories yet.",
       };
     }
 
@@ -556,7 +554,9 @@ export class GithubQlService {
     this.logger.log(`Performing intelligent analysis for user: ${username}`);
 
     // Get all repositories for user
-    const repositories = await this.githubRepoModel.find({ 'owner.login': username });
+    const repositories = await this.githubRepoModel.find({
+      'owner.login': username,
+    });
 
     if (repositories.length === 0) {
       throw new HttpException(
@@ -566,7 +566,8 @@ export class GithubQlService {
     }
 
     // Analyze all repositories
-    const analysis = this.repositoryAnalyzer.analyzeAllRepositories(repositories);
+    const analysis =
+      this.repositoryAnalyzer.analyzeAllRepositories(repositories);
 
     return {
       username,
@@ -574,7 +575,7 @@ export class GithubQlService {
       analyzedAt: new Date(),
       summary: analysis.summary,
       categorized: {
-        frontend: analysis.categorized.frontend.map(r => ({
+        frontend: analysis.categorized.frontend.map((r) => ({
           name: r.name,
           fullName: r.fullName,
           description: r.description,
@@ -584,7 +585,7 @@ export class GithubQlService {
           frameworks: r.analysis.frameworks,
           confidence: r.analysis.confidence,
         })),
-        backend: analysis.categorized.backend.map(r => ({
+        backend: analysis.categorized.backend.map((r) => ({
           name: r.name,
           fullName: r.fullName,
           description: r.description,
@@ -594,7 +595,7 @@ export class GithubQlService {
           frameworks: r.analysis.frameworks,
           confidence: r.analysis.confidence,
         })),
-        mobile: analysis.categorized.mobile.map(r => ({
+        mobile: analysis.categorized.mobile.map((r) => ({
           name: r.name,
           fullName: r.fullName,
           description: r.description,
@@ -604,7 +605,7 @@ export class GithubQlService {
           frameworks: r.analysis.frameworks,
           confidence: r.analysis.confidence,
         })),
-        fullstack: analysis.categorized.fullstack.map(r => ({
+        fullstack: analysis.categorized.fullstack.map((r) => ({
           name: r.name,
           fullName: r.fullName,
           description: r.description,
@@ -614,7 +615,7 @@ export class GithubQlService {
           frameworks: r.analysis.frameworks,
           confidence: r.analysis.confidence,
         })),
-        devops: analysis.categorized.devops.map(r => ({
+        devops: analysis.categorized.devops.map((r) => ({
           name: r.name,
           fullName: r.fullName,
           description: r.description,
@@ -623,7 +624,7 @@ export class GithubQlService {
           technologies: r.analysis.technologies,
           confidence: r.analysis.confidence,
         })),
-        dataScience: analysis.categorized.dataScience.map(r => ({
+        dataScience: analysis.categorized.dataScience.map((r) => ({
           name: r.name,
           fullName: r.fullName,
           description: r.description,
@@ -633,7 +634,7 @@ export class GithubQlService {
           frameworks: r.analysis.frameworks,
           confidence: r.analysis.confidence,
         })),
-        other: analysis.categorized.other.map(r => ({
+        other: analysis.categorized.other.map((r) => ({
           name: r.name,
           fullName: r.fullName,
           description: r.description,
@@ -646,6 +647,54 @@ export class GithubQlService {
       topFrameworks: analysis.topFrameworks,
     };
   }
+
+  /**
+   * Verify user's claimed tech stack against actual GitHub usage
+   */
+  async verifyUserTechStack(
+    username: string,
+    claimedTechnologies: string[],
+  ): Promise<any> {
+    this.logger.log(`Verifying tech stack for user: ${username}`);
+
+    // Get all repositories for user
+    const repositories = await this.githubRepoModel.find({
+      'owner.login': username,
+    });
+
+    if (repositories.length === 0) {
+      throw new HttpException(
+        `No repositories found for ${username}. Please scan first.`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Verify tech stack
+    const verification = this.techStackMatcher.verifyTechStack(
+      repositories,
+      claimedTechnologies,
+    );
+
+    // Get comprehensive summary
+    const summary =
+      this.techStackMatcher.generateTechStackSummary(repositories);
+
+    // Get categorized technologies
+    const categorized =
+      this.techStackMatcher.getTechnologiesByCategory(repositories);
+
+    return {
+      username,
+      totalRepositories: repositories.length,
+      verifiedAt: new Date(),
+      verification: {
+        matched: verification.matched,
+        notFound: verification.notFound,
+        badgeEligible: verification.matched, // All matched technologies are badge eligible
+      },
+      additionalTechnologies: verification.additionalTechnologies,
+      techStackSummary: summary,
+      categorized,
+    };
+  }
 }
-
-

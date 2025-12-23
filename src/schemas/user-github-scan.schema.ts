@@ -5,29 +5,30 @@ export type UserGithubScanDocument = UserGithubScan & Document;
 
 @Schema({ timestamps: true })
 export class UserGithubScan {
-    @Prop({ required: true, unique: true })
-    userId: string; // User's MongoDB _id
+  @Prop({ required: true, unique: true })
+  userId: string; // User's MongoDB _id
 
-    @Prop({ required: true })
-    githubUsername: string;
+  @Prop({ required: true })
+  githubUsername: string;
 
-    @Prop({ required: true })
-    lastScanDate: Date;
+  @Prop({ required: true })
+  lastScanDate: Date;
 
-    @Prop({ default: 1 })
-    scanCount: number; // Total scans performed
+  @Prop({ default: 1 })
+  scanCount: number; // Total scans performed
 
-    @Prop({ default: 1 })
-    weeklyScansRemaining: number; // Scans remaining this week
+  @Prop({ default: 1 })
+  weeklyScansRemaining: number; // Scans remaining this week
 
-    @Prop()
-    nextScanAvailableAt: Date; // When next scan is available (7 days from last scan)
+  @Prop()
+  nextScanAvailableAt: Date; // When next scan is available (7 days from last scan)
 
-    @Prop({ default: true })
-    isEligibleForScan: boolean; // Can user scan now?
+  @Prop({ default: true })
+  isEligibleForScan: boolean; // Can user scan now?
 }
 
-export const UserGithubScanSchema = SchemaFactory.createForClass(UserGithubScan);
+export const UserGithubScanSchema =
+  SchemaFactory.createForClass(UserGithubScan);
 
 // Indexes for performance
 UserGithubScanSchema.index({ userId: 1 });

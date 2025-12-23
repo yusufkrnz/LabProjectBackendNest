@@ -12,7 +12,7 @@ import { Project } from './entities/project.entity';
 import { Payment } from './entities/payment.entity';
 import { GithubQlModule } from './github-ql/github-ql.module';
 import { MessageModule } from './message/message.module';
-
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -21,15 +21,15 @@ import { MessageModule } from './message/message.module';
       envFilePath: '.env',
     }),
     MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/lab_project_db'
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/lab_project_db',
     ),
     UsersModule,
     AuthModule,
     GithubQlModule,
     MessageModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
-
+export class AppModule {}

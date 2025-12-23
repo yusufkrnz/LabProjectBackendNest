@@ -1,50 +1,58 @@
-import { IsString, IsNumber, IsDateString, IsEnum, IsArray, ValidateNested, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsDateString,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ProjectStatus, MilestoneStatus } from '../../entities/project.entity';
 
 export class CreateMilestoneDto {
-    @IsString()
-    id: string;
+  @IsString()
+  id: string;
 
-    @IsString()
-    title: string;
+  @IsString()
+  title: string;
 
-    @IsNumber()
-    amount: number;
+  @IsNumber()
+  amount: number;
 
-    @IsEnum(MilestoneStatus)
-    status: MilestoneStatus;
+  @IsEnum(MilestoneStatus)
+  status: MilestoneStatus;
 }
 
 export class CreateProjectDto {
-    @IsString()
-    projectTitle: string;
+  @IsString()
+  projectTitle: string;
 
-    @IsString()
-    clientName: string;
+  @IsString()
+  clientName: string;
 
-    @IsString()
-    clientAvatar: string;
+  @IsString()
+  clientAvatar: string;
 
-    @IsDateString()
-    startDate: string;
+  @IsDateString()
+  startDate: string;
 
-    @IsDateString()
-    deadline: string;
+  @IsDateString()
+  deadline: string;
 
-    @IsNumber()
-    totalBudget: number;
+  @IsNumber()
+  totalBudget: number;
 
-    @IsNumber()
-    @IsOptional()
-    earnedAmount?: number;
+  @IsNumber()
+  @IsOptional()
+  earnedAmount?: number;
 
-    @IsEnum(ProjectStatus)
-    @IsOptional()
-    status?: ProjectStatus;
+  @IsEnum(ProjectStatus)
+  @IsOptional()
+  status?: ProjectStatus;
 
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => CreateMilestoneDto)
-    milestones: CreateMilestoneDto[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateMilestoneDto)
+  milestones: CreateMilestoneDto[];
 }

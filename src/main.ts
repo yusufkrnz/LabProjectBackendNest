@@ -10,6 +10,7 @@ async function bootstrap() {
     .setDescription('The LabNestBackend API description')
     .setVersion('1.0')
     .addTag('LabNestBackend')
+    .addBearerAuth()
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
@@ -27,4 +28,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();
